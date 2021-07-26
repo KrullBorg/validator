@@ -1,7 +1,6 @@
-package it_test
+package it
 
 import (
-	"go-playground/validator/translations/it"
 	"testing"
 	"time"
 
@@ -12,14 +11,13 @@ import (
 )
 
 func TestTranslations(t *testing.T) {
-	t.Parallel()
-
 	ita := italian.New()
 	uni := ut.New(ita, ita)
 	trans, _ := uni.GetTranslator("it")
+
 	validate := validator.New()
 
-	err := it.RegisterDefaultTranslations(validate, trans)
+	err := RegisterDefaultTranslations(validate, trans)
 	Equal(t, err, nil)
 
 	type Inner struct {
@@ -143,9 +141,13 @@ func TestTranslations(t *testing.T) {
 		UniqueArray       [3]string         `validate:"unique"`
 		UniqueMap         map[string]string `validate:"unique"`
 		JSONString        string            `validate:"json"`
+		JWTString         string            `validate:"jwt"`
 		LowercaseString   string            `validate:"lowercase"`
 		UppercaseString   string            `validate:"uppercase"`
 		Datetime          string            `validate:"datetime=2006-01-02"`
+		PostCode          string            `validate:"postcode_iso3166_alpha2=SG"`
+		PostCodeCountry   string
+		PostCodeByField   string `validate:"postcode_iso3166_alpha2_field=PostCodeCountry"`
 	}
 
 	var test Test
@@ -459,11 +461,11 @@ func TestTranslations(t *testing.T) {
 		},
 		{
 			ns:       "Test.GteString",
-			expected: "GteString deve essere almeno 3 caratteri di lunghezza",
+			expected: "GteString deve essere lungo almeno 3 caratteri",
 		},
 		{
 			ns:       "Test.GteNumber",
-			expected: "GteNumber deve essere 5,56 o maggiore",
+			expected: "GteNumber deve essere maggiore o uguale a 5,56",
 		},
 		{
 			ns:       "Test.GteMultiple",
@@ -475,7 +477,7 @@ func TestTranslations(t *testing.T) {
 		},
 		{
 			ns:       "Test.GtString",
-			expected: "GtString deve essere maggiore di 3 caratteri di lunghezza",
+			expected: "GtString deve essere più lungo di 3 caratteri",
 		},
 		{
 			ns:       "Test.GtNumber",
@@ -495,7 +497,7 @@ func TestTranslations(t *testing.T) {
 		},
 		{
 			ns:       "Test.LteNumber",
-			expected: "LteNumber deve essere 5,56 o inferiore",
+			expected: "LteNumber deve essere minore o uguale a 5,56",
 		},
 		{
 			ns:       "Test.LteMultiple",
@@ -507,7 +509,7 @@ func TestTranslations(t *testing.T) {
 		},
 		{
 			ns:       "Test.LtString",
-			expected: "LtString deve essere inferiore a 3 caratteri di lunghezza",
+			expected: "LtString deve essere lungo meno di 3 caratteri",
 		},
 		{
 			ns:       "Test.LtNumber",
@@ -551,7 +553,7 @@ func TestTranslations(t *testing.T) {
 		},
 		{
 			ns:       "Test.MaxNumber",
-			expected: "MaxNumber deve essere 1.113,00 o inferiore",
+			expected: "MaxNumber deve essere minore o uguale a 1.113,00",
 		},
 		{
 			ns:       "Test.MaxMultiple",
@@ -559,11 +561,11 @@ func TestTranslations(t *testing.T) {
 		},
 		{
 			ns:       "Test.MinString",
-			expected: "MinString deve essere almeno 1 carattere di lunghezza",
+			expected: "MinString deve essere lungo almeno 1 carattere",
 		},
 		{
 			ns:       "Test.MinNumber",
-			expected: "MinNumber deve essere 1.113,00 o maggiore",
+			expected: "MinNumber deve essere maggiore o uguale a 1.113,00",
 		},
 		{
 			ns:       "Test.MinMultiple",
@@ -595,7 +597,7 @@ func TestTranslations(t *testing.T) {
 		},
 		{
 			ns:       "Test.StrPtrMinLen",
-			expected: "StrPtrMinLen deve essere almeno 10 caratteri di lunghezza",
+			expected: "StrPtrMinLen deve essere lungo almeno 10 caratteri",
 		},
 		{
 			ns:       "Test.StrPtrMaxLen",
@@ -607,7 +609,7 @@ func TestTranslations(t *testing.T) {
 		},
 		{
 			ns:       "Test.StrPtrLt",
-			expected: "StrPtrLt deve essere inferiore a 1 carattere di lunghezza",
+			expected: "StrPtrLt deve essere lungo meno di 1 carattere",
 		},
 		{
 			ns:       "Test.StrPtrLte",
@@ -615,11 +617,11 @@ func TestTranslations(t *testing.T) {
 		},
 		{
 			ns:       "Test.StrPtrGt",
-			expected: "StrPtrGt deve essere maggiore di 10 caratteri di lunghezza",
+			expected: "StrPtrGt deve essere più lungo di 10 caratteri",
 		},
 		{
 			ns:       "Test.StrPtrGte",
-			expected: "StrPtrGte deve essere almeno 10 caratteri di lunghezza",
+			expected: "StrPtrGte deve essere lungo almeno 10 caratteri",
 		},
 		{
 			ns:       "Test.OneOfString",
@@ -646,6 +648,10 @@ func TestTranslations(t *testing.T) {
 			expected: "JSONString deve essere una stringa json valida",
 		},
 		{
+			ns:       "Test.JWTString",
+			expected: "JWTString deve essere una stringa jwt valida",
+		},
+		{
 			ns:       "Test.LowercaseString",
 			expected: "LowercaseString deve essere una stringa minuscola",
 		},
@@ -657,9 +663,18 @@ func TestTranslations(t *testing.T) {
 			ns:       "Test.Datetime",
 			expected: "Datetime non corrisponde al formato 2006-01-02",
 		},
+		{
+			ns:       "Test.PostCode",
+			expected: "PostCode non corrisponde al formato del codice postale del paese SG",
+		},
+		{
+			ns:       "Test.PostCodeByField",
+			expected: "PostCodeByField non corrisponde al formato del codice postale del paese nel campo PostCodeCountry",
+		},
 	}
 
 	for _, tt := range tests {
+
 		var fe validator.FieldError
 
 		for _, e := range errs {
